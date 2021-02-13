@@ -1,0 +1,124 @@
+pragma solidity ^0.4.11;
+
+import "https://github.com/axic/ethereum-rsa/rsaverify.sol";
+
+contract Simorgh_send {
+address public receiver;
+address public Auth_node;
+string Ipfshashreceiver;
+string data_information_hash;
+string receiver_public_key;
+string IP_of_auth_node;
+string Sign_of_receiver_on_hash;
+string reciever_name;
+string receiver_name;
+string factornumber ;
+string signiture;
+bytes fac_NUM;
+bytes sign;
+uint element;
+
+
+
+enum contractstate { notready , created , watingforAuthnode , watingforauthentication , aborted }
+contractstate public con_state;
+
+enum Auth_nodestate {readytosubmit , submittedforauthentication , validdationsuccess , failvalidation}
+Auth_nodestate public Authstate;
+
+
+mapping (address=> bool) public recordList;//addresses of Authentication node and results (true or false)
+mapping (address => bool) public approvedreceiver ; 
+mapping (address=>string) public dataHashes; //hashes provided by publishers
+mapping (address=>Auth_nodestate) public authnodes;
+
+
+// contructor
+
+
+function Simorgh_messanger(){
+	receiver_name = "your name" ;
+	reciever_name = "your reciever_name";
+	receiver = msg.sender;
+	con_state = contractstate.notready;
+	data_information_hash = "70dd0c1b74d12222bc1e5257bd8c2d45b816202c";
+	//N for sender :  factornumber =  "00a2904487e49592a42890964f2a758ce58af027ba0fd68f6c9a5684a2d963b6af4127b91e0b9c084aeb0cd9cc81328433d8ed178e4c696c199e2a3d899f85b02f2d16023b57d06ada7e7ab46b49978063d739c9697b3b119783ba870132ac5bba37ccbd99b99a8188fcae7ccce24525dc03c50f78c7a043cc6c2589c90b3f717851d7de5f62d0eafe81aba1287d8e674750090e521589187613518892603dcb9ff37051616805e6fae9ff6185d8037711f2a8cf37db8ccad45fa4410d0e354a029268b22192fabaa45d0b6c72314682143f7e14603a40a9e314644b69cba10910dc651b5fa559a7df46a7758331b24e4ae1a050d280420a49b6119b6e61827749";
+	factornumber =  "00dd4f91e328030a19206090107c26cd86c3aca4a1ffae35b7d7ba8f479cf016b6304c08eddc17b70e8e87dd71e2b448aa840f874ae8133deca0db0ecc59aebc9cb4427270787e0792db9179f0a54a7999e2620f604dd33eb2f8200295630b4a79a606d6442f5b9be823bf8928414d8589d7f2c188900e23b96997c5816ca6a653b292433fcc87a768cd78444279fb99e870007c760e1577fed0dda0e711bf9ebacc1cb773b16030780f634b686643c5915fcfbc61d586a1b8ff135ea3f7c246e9d7b13f4ca4b328a2807dec320bbb006a462921404e3c892efd2b59d49ab82b97bb9426f71a553f0bddd685b01ce3580bdde45ac0c3b6723a42400b5a1165b4f1";
+	fac_NUM = bytes(factornumber);
+	//signiture for sender : signiture = "1650a750994065226a299be192530fb5575dafe752427f91adb9dadbca968e7edc56db9d3da7550fc2903d2b6a7e0a6452db83855b8a54ff523bdcd4b987640a9939b3f691fae1eac3c0674b1bdb8d4dcf8c2ad003a5ee68bfff34c12ac70081cd817fabc0820d730c7e8f9e4960a7724c8882e65196f6477c85602da607e496f1f5e59f1a346d46ec72ba44cf5b1a562bf4f9c408c2d0c12fb68be0872048700485385414ff76485a0c29d4ed8ccc9594261dc4d54f71ace0878956e918405bd2f41cfd47404c3b63bf4d734d71d72f9df4382790b506f10fb73450b5ad4302b3e232f7deef1d3541c505e3e87b9e24b329a8b95f0ff7be5d4685bafafb84db";
+	signiture = "3108339a15c82d8ee23c9d19085e3961080667d5d26ed7282563d86d21f9a169e8b9ecc8b9fbda707b68575aaf4e16c940bae7f1dd4e47069b742d545ac616a2e49caff0773d361598561598b8ad94093d700bb44ec86af0dbc3fa2c6564c741684be4bbd087a46841fe294ce0d4bcd5519d8c58388a44173489314c4adbe7be57c3c623aedd3c34a89f67b93f5f93ba604fffc48d5f4e16362d28252a5a56346c08c837fe1994b485b8166597ac24a54325221d8a8f5b769a5bca331e1786a32d6238e21dd8c9c0d6927c786f0ccdb705e413864ecfda61ac754e6114ef2dc3f093e423c213c3ed3282e9405f58e145d8e6a23208a5dd0aa9b7312f5f24b199";
+	sign = bytes(signiture);
+	element = 65537;
+	con_state = contractstate.notready;
+}
+
+//modifiers
+ modifier Auth_node_start(){
+ require(msg.sender == Auth_node);
+ _;
+ }
+ 
+ modifier receiver_start() {
+ require(msg.sender == receiver);
+ _;
+ }
+ 
+ // event
+ 
+ event ContractCreated (address receiver , string info);
+ event RequestforAuthentication (address receiver , string info);
+ event receiver_ready_forlink (address auth_node , string IP);
+ event Authentication_Donebyreceiver (address receiver , string info);
+ event Authentication_failed (address receiver  , string info);
+ event Digital_signture_ischeked(address receiver  , string info);
+ event Amendation (address receiver , string info);
+ 
+// function
+
+ function digi_sign_Auth(bytes msg, bytes N, uint e, bytes S) returns (bool) {
+     return RSAVerify.rsaverify(msg, N, e, S, 1);
+    }
+ function con_creation() receiver_start {
+	 require(con_state == contractstate.notready);
+	 con_state = contractstate.created;
+	 ContractCreated(msg.sender , "wating for Authentication node ...");
+	 }
+ function request_Authenticity(address Authentication_node  , string datahash,bytes data_hash, bytes N, uint e, bytes S) Auth_node_start{
+	 datahash =  data_information_hash;
+	 data_hash = bytes(datahash);
+	 N = fac_NUM;
+     S = sign;
+     e = element;
+	 require(con_state == contractstate.created );
+	 require(authnodes[Authentication_node]== Auth_nodestate.readytosubmit);
+	 require(digi_sign_Auth(data_hash,  N,  e,  S) == true);
+	 authnodes[Authentication_node] = Auth_nodestate.submittedforauthentication;
+	 con_state = contractstate.watingforauthentication;
+	 dataHashes[Authentication_node] = datahash ; // update the mapping
+	 Digital_signture_ischeked(msg.sender  , "Signiture is checked");
+	 RequestforAuthentication (msg.sender , "Authentication's process is ready to be done by receiver...");
+	}
+
+ function provideAuthenticationResult (address Authentication_node) receiver_start public {
+    require(con_state == contractstate.watingforauthentication && (authnodes[Authentication_node] == Auth_nodestate.submittedforauthentication));
+      if(keccak256(dataHashes[Authentication_node]) == keccak256(data_information_hash)) //compare data information hashes for receiver and Authentication node
+      {
+          receiver_ready_forlink(msg.sender, "data will be sent to IPFS by Authentication node ");
+          authnodes[Authentication_node] = Auth_nodestate.validdationsuccess;
+          recordList[Authentication_node] = true;
+          approvedreceiver[Authentication_node] = true;
+          Authentication_Donebyreceiver(Authentication_node, "Proceed to send Content on IPFS");
+      }
+      else if(keccak256(dataHashes[Authentication_node]) != keccak256(Ipfshashreceiver))
+      {
+          Authentication_failed (msg.sender, " Content Modified / Corrupted: Hash does not match . Failed to be approved by Author");
+          recordList[Authentication_node] = false;
+          authnodes[Authentication_node] = Auth_nodestate.failvalidation;
+          Amendation(Authentication_node, " Amend content and request for attestation again.");
+      }
+      
+
+    }
+
+    
+}
